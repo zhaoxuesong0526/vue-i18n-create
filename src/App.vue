@@ -1,21 +1,6 @@
 <template>
   <el-container style="height: 100%">
     <el-header height="auto">
-      <el-dialog title="帮助文档" :visible.sync="dialogVisible">
-        <ol>
-          <li>新文档就先新增根节点再添加语言</li>
-          <li>已有文档就点导入或者拖到下方文本框</li>
-          <li>鼠标移动到节点路径上，会出现“复制”按钮，方便复制节点路径</li>
-          <li>双击节点名称可以进行修改</li>
-          <li>双击语言内容可以进行修改</li>
-        </ol>
-        <span slot="footer" class="dialog-footer">
-          <el-button
-            type="primary" @click="dialogVisible = false"
-          >确 定</el-button>
-        </span>
-      </el-dialog>
-
       <el-row>
         <el-col :span="12">
           <el-button-group>
@@ -28,10 +13,10 @@
           </el-button-group>
         </el-col>
         <el-col :span="12" class="text-right">
-          <el-button type="info" @click="dialogVisible = true">
+          <!-- <el-button type="info" @click="dialogVisible = true">
             {{ $t('actions.tips') }}
-          </el-button>
-          <el-select v-model="$i18n.locale" placeholder="选择语言">
+          </el-button> -->
+          <el-select v-model="$i18n.locale" placeholder="选择语言" @change="changeLanguage">
             <el-option label="中文" value="zh-CN" />
             <el-option label="English" value="en" />
           </el-select>
@@ -40,11 +25,14 @@
     </el-header>
     <el-main>
       <p>
-        <el-button type="primary" @click="handleAppendRoot">
+        <el-button type="primary" plain @click="handleAppendRoot">
           {{ $t('actions.addRootNode') }}
         </el-button>
-        <el-button type="success" @click="addLanguage">
+        <el-button type="primary" plain @click="addLanguage">
           {{ $t('actions.addLanguage') }}
+        </el-button>
+        <el-button type="success" plain @click="handleSave">
+          {{ $t('actions.save') }}
         </el-button>
       </p>
       <el-table
@@ -80,7 +68,8 @@
               :key="scope.row.children.length"
               class="cell-lang-value"
             >
-              {{ scope.row.languages[lang] }}
+              <!-- {{ scope.row.languages[lang] }} -->
+              <el-input v-model="scope.row.languages[lang]" />
             </div>
           </template>
         </el-table-column>
@@ -118,11 +107,16 @@
 </template>
 
 <script>
+
 import Node from './models/Node.js'
+
+// let writeFile = require('./writeFile')
+
+// console.log(writeFile)
 
 export default {
   name: 'App',
-  data () {
+  data() {
     return {
       filename: 'message.json',
       dialogVisible: false,
@@ -131,68 +125,86 @@ export default {
     }
   },
   computed: {
-    formatText () {
-      let json = {}
+    formatText: {
+      get() {
+        let json = {}
+        this.languages.forEach((lang) => {
+        
+          json[lang] = this.list.reduce((p, c) => {
+            let m = c.getLang(lang) 
 
-      this.languages.forEach(lang => {
-        json[lang] = this.list.reduce((p, c) => {
-          let m = c.getLang(lang)
-
-          return Object.assign(p, m)
-        }, {})
-      })
-
-      return JSON.stringify(json)
-    }
+            return Object.assign(p, m)
+          }, {}) 
+        })
+        return JSON.stringify(json)
+      },
+      set(value){
+        // formatText = value
+      }
+    },
   },
-  created () {
-    this.parseJson({
+  created() {
+   
+    let languages = localStorage.getItem('languages') && JSON.parse(localStorage.getItem('languages'))
+    this.parseJson(Object.assign({},{
       'en': {
-        Account: {
-          Username: 'Username',
-          Password: 'Password'
-        }
+       
       },
       'zh-CN': {
-        Account: {
-          Username: '姓名',
-          Password: '密码'
-        }
+       
       }
-    })
+    },languages))
+    // this.formatText = localStorage.getItem('formatText')
+  },
+  mounted(){
+   this.timer =  setInterval(()=>{
+      this.handleSave() 
+    },5000)
+  },
+  destroyed(){
+    clearInterval(this.timer)
+    this.timer = null
   },
   methods: {
-    addKey (parent) {
+    changeLanguage(value){
+      localStorage.setItem('LANGUAGE',value)
+    },
+    handleSave() {
+      
+      localStorage.setItem('languages', this.formatText)
+     
+      // writeFile(this.formatText)
+    },
+    addKey(parent) {
       this.$prompt('请输入新的节点名', '新增')
         .then(({ value }) => {
           if (!value) return
 
           let node = new Node(value)
-
           if (parent) parent.append(node)
           else this.list.push(node)
         })
-        .catch(() => { })
+        .catch(() => {})
     },
-    addLanguage () {
+    addLanguage() {
       this.$prompt('', '请输入语言名称').then(({ value }) => {
         if (value) this.languages.push(value)
       })
     },
 
     // 选择文件导入
-    handleImport () {
+    handleImport() {
       let input = document.createElement('input')
       input.type = 'file'
       input.accept = 'application/json'
-      input.onchange = e => {
+      input.onchange = (e) => {
         let { files } = e.target
         this.importByFile(files)
       }
       input.click()
     },
     // 导出
-    handleExport () {
+    handleExport() {
       let b = new Blob([this.formatText])
 
       let a = document.createElement('a')
@@ -201,13 +213,13 @@ export default {
       a.click()
     },
     // 拖放导入
-    handleDrop (e) {
+    handleDrop(e) {
       let { files } = e.dataTransfer
 
       this.importByFile(files)
     },
     // 从文件导入数据，二次编辑
-    importByFile (files) {
+    importByFile(files) {
       if (files.length !== 1) {
         return
       }
@@ -218,27 +230,28 @@ export default {
       this.filename = file.name
 
       let reader = new FileReader()
-      reader.onload = event => {
+      reader.onload = (event) => {
         let json = JSON.parse(event.target.result)
 
         this.parseJson(json)
       }
       reader.readAsText(file)
     },
-    parseJson (json) {
+    parseJson(json) {
       // 先解析出语言
       this.languages = Object.keys(json)
-
       let values = Object.values(json)
 
       // 从第一个语言提取出结构来
       let firstLanguage = values[0]
       this.list = Object.keys(firstLanguage).map(
-        key => new Node(key, firstLanguage[key], json)
+        (key) => {
+         return new Node(key, firstLanguage[key], json)
+        }
       )
     },
     // 复制文字
-    copyText (text) {
+    copyText(text) {
       let input = document.createElement('textarea')
       input.value = text
       input.style.position = 'fixed'
@@ -252,23 +265,23 @@ export default {
       document.body.removeChild(input)
     },
     // 移除节点
-    handleRemove (node) {
+    handleRemove(node) {
       this.$confirm(`确定要移除节点 ${node.fullPath} 吗？`, '确认')
         .then(() => {
           if (node.parent) node.remove()
-          else this.list = this.list.filter(n => n.key !== node.key)
+          else this.list = this.list.filter((n) => n.key !== node.key)
         })
-        .catch(() => { })
+        .catch(() => {})
     },
     // 添加子节点
-    handleAppend (node) {
+    handleAppend(node) {
       this.addKey(node)
     },
     // 添加根节点
-    handleAppendRoot () {
+    handleAppendRoot() {
       this.addKey()
     },
-    handleCellDbClick (row, column, cell, event) {
+    handleCellDbClick(row, column, cell, event) {
       console.log(row, column)
 
       if (column.property === 'key') {
@@ -278,7 +291,12 @@ export default {
           inputPattern: /^[a-zA-Z][a-zA-Z0-9]*$/,
           inputErrorMessage: '目前只允许输入字母与数字，且必须是字母开头',
           inputValue: row.key,
-        }).then(({ value }) => { row.key = value }).catch(() => { })
+          closeOnClickModal:false
+        })
+          .then(({ value }) => {
+            row.key = value
+          })
+          .catch(() => {})
       }
 
       // 如果是lang-开头的列，表示是语言值
@@ -292,11 +310,15 @@ export default {
             confirmButtonText: '确定',
             cancelButtonText: '取消',
             inputValue: value,
-          }).then(({ value }) => { row.setContent(lang, value) }).catch(() => { })
+          })
+            .then(({ value }) => {
+              row.setContent(lang, value)
+            })
+            .catch(() => {})
         }
       }
     },
-  }
+  },
 }
 </script>
 

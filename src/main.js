@@ -9,17 +9,15 @@ import 'element-ui/lib/theme-chalk/index.css'
 import App from './App.vue'
 import './App.scss'
 
-
 Vue.config.productionTip = false
 
 Vue.use(VueI18n)
 Vue.use(ElementUI)
 
 const i18n = new VueI18n({
-  locale:'en',
+  locale:localStorage.getItem('LANGUAGE')||'zh-CN',
   messages
 })
-
 
 new Vue({
   i18n,

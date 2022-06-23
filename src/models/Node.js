@@ -40,7 +40,7 @@ export default class Node {
       message[this.key] = this.children.reduce((p, c) => {
         return Object.assign(p, c.getLang(lang))
       }, {})
-    } else message[this.key] = this.languages[lang]
+    } else message[this.key] = this.languages[lang] || ''
 
     return message
   }
