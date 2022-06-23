@@ -190,6 +190,7 @@ export default {
       this.$prompt('', '请输入语言名称').then(({ value }) => {
         if (value) this.languages.push(value)
       })
+      
     },
 
     // 选择文件导入
