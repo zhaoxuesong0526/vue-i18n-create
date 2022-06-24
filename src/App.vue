@@ -94,6 +94,27 @@
       </el-table>
       <div>
         <p>拖拽文件到文本框，可导入现有数据</p>
+        <!-- 中文 -->
+        <div>中文</div>
+        <el-input
+          type="textarea"
+          :rows="5"
+          placeholder="请输入内容"
+          :value="JSON.stringify(JSON.parse(formatText)['zh-CN'])"
+          @drop.native.prevent="handleDrop"
+        />
+        <!-- 英文 -->
+        <div>英文</div>
+        <el-input
+          type="textarea"
+          :rows="5"
+          placeholder="请输入内容"
+          :value="JSON.stringify(JSON.parse(formatText)['en'])"
+          @drop.native.prevent="handleDrop"
+        />
+
+        <!-- 全部 -->
+        <div>全部</div>
         <el-input
           type="textarea"
           :rows="5"
@@ -189,7 +210,7 @@ export default {
       this.$prompt('', '请输入语言名称').then(({ value }) => {
         if (value) this.languages.push(value)
       })
-      
+
     },
 
     // 选择文件导入
