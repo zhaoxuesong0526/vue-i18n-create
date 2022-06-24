@@ -105,7 +105,6 @@
     </el-main>
   </el-container>
 </template>
-
 <script>
 
 import Node from './models/Node.js'
