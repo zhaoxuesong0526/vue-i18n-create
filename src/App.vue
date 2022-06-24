@@ -115,6 +115,7 @@ import Node from './models/Node.js'
 
 export default {
   name: 'App',
+  
   data() {
     return {
       filename: 'message.json',
